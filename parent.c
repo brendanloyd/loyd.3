@@ -17,11 +17,11 @@ void timeoutSigHandler(int sig) {
 }
 
 int main(int argc, char **argv) {
-	int option, totalChildProcesses, clockIncrement;
-	int childrenRunningAtOneTime;
+	int option, totalChildProcesses = 4, clockIncrement;
+	int childrenRunningAtOneTime = 2;
 	signal(SIGTERM, terminateSigHandler);
 	signal(SIGALRM, timeoutSigHandler);
-	alarm(2);
+	alarm(30);
         int childProcessCounter;
         char *childNumber; //char arrays to send to child
         char *clock_Increment; //char arrays to send to child
@@ -90,6 +90,8 @@ int main(int argc, char **argv) {
 	  /* Set shared memory segment to 0  */
 	*shared_memory = 0;
 	mem_ptr = shared_memory;
+	int *nano_clock = shared_memory + 1;
+	*nano_clock = 0;
 	
 	clock_Increment = malloc(sizeof(clockIncrement));
 	childNumber = malloc(sizeof(totalChildProcesses));
@@ -111,7 +113,7 @@ int main(int argc, char **argv) {
 	}
 	wait();
 
-        printf("Clock value is: %d\nParent is now ending\n",*shared_memory);
+        printf("Clock value in seconds is: %d : NanoSeconds is : %d\nParent is now ending\n",*shared_memory, *nano_clock);
 	shmdt(shared_memory);    // Detach from the shared memory segment
 	shmctl( segment_id, IPC_RMID, NULL ); // Free shared memory segment shm_id
 	return EXIT_SUCCESS; 
