@@ -34,7 +34,33 @@ int main(int argc, char **argv) {
 
    sigaction(SIGINT, &sigIntHandler, NULL);
 
-
+	struct  my_msgbuf buf;
+	key_t key;
+	int msqid;
+	if((key = SHMKEY) == -1) {
+		perror("Key initialization failed.");
+		exit(1);
+	}
+	if(msqid = msgget(key, PERMS | IPC_CREAT) == -1) {
+		perror("msgget");
+		exit(1);
+	}
+	char message[20] = "This is for jaggy";
+	printf("message is %s\n", message);
+	strncpy(message, buf.mtext, 20);
+	printf("message to send is: %s\n", buf.mtext); 
+	int len = strlen(buf.mtext);
+	if (buf.mtext[len-1] == '\n') buf.mtext[len-1] = '\0';
+	if (msgsnd(msqid, &buf, len+1, 0) == -1) {
+		perror("msgsnd");
+		exit(1);
+	}
+	if(msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0) == -1) {
+		perror("msgrcv");
+		exit(1);
+	}
+	printf("recvd: %s\n", buf.mtext);
+	exit(1);
 	while ((option = getopt(argc, argv, "hn:s:m:")) != -1) {
                 switch (option) {
                         case 'h' :
@@ -97,22 +123,40 @@ int main(int argc, char **argv) {
 	childNumber = malloc(sizeof(totalChildProcesses));
 
         sprintf(clock_Increment, "%d", clockIncrement);
-	for (childProcessCounter = 0; childProcessCounter < (totalChildProcesses - childrenRunningAtOneTime); childProcessCounter++) {
-		wait();
-		if(childrenRunningAtOneTime != 0)
-		childrenRunningAtOneTime--;
-		pid_t childPid = fork(); // This is where the child process splits from the parent
-		sprintf(childNumber, "%d",(childProcessCounter + 1));
-        	if (childPid == 0) {
-                	char* args[] = {"./child", childNumber, clock_Increment, 0};
-                	//execvp(args[0], args);
-                	execlp(args[0],args[0],args[1],args[2], args[3]);
-                	fprintf(stderr,"Exec failed, terminating\n");
-                	exit(1);
-        	} 
-	}
-	wait();
+//	for (childProcessCounter = 0; childProcessCounter < (totalChildProcesses - childrenRunningAtOneTime); childProcessCounter++) {
+//		//wait();
+//		if(childrenRunningAtOneTime != 0)
+//		childrenRunningAtOneTime--;
+//		pid_t childPid = fork(); // This is where the child process splits from the parent
+//		sprintf(childNumber, "%d",(childProcessCounter + 1));
+//		if (childPid == 0) {
+//            	char* args[] = {"./child", childNumber, clock_Increment, 0};
+//                	//execvp(args[0], args);
+//                	execlp(args[0],args[0],args[1],args[2], args[3]);
+//                	fprintf(stderr,"Exec failed, terminating\n");
+//                	exit(1);
+//        	} 
+//	}
+		pid_t wpid;
+		int status = 0;		
+	        for (childProcessCounter = 0; childProcessCounter < totalChildProcesses; childProcessCounter++) {
+                	//wait();
+                	if(childProcessCounter == childrenRunningAtOneTime) {
+                		while ((wpid = wait(&status)) > 0);
+				childrenRunningAtOneTime *= 2;
+			}
+			pid_t childPid = fork(); // This is where the child process splits from the parent
+                	sprintf(childNumber, "%d",(childProcessCounter + 1));
+                	if (childPid == 0) {
+                        	char* args[] = {"./child", childNumber, clock_Increment, 0};
+                        	//execvp(args[0], args);
+                        	execlp(args[0],args[0],args[1],args[2], args[3]);
+                        	fprintf(stderr,"Exec failed, terminating\n");
+                        	exit(1);
+                	}
+                }
 
+	while ((wpid = wait(&status)) > 0);	
         printf("Clock value in seconds is: %d : NanoSeconds is : %d\nParent is now ending\n",*shared_memory, *nano_clock);
 	shmdt(shared_memory);    // Detach from the shared memory segment
 	shmctl( segment_id, IPC_RMID, NULL ); // Free shared memory segment shm_id

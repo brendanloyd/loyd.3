@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
 	int forLoopIncrement = 0;
 	for(forLoopIncrement; forLoopIncrement <= totalIncrements; forLoopIncrement++) {
 		printf("worker_pid %d : Got in criticial section: Time: %d\n", getpid(), *shared_memory);
+		sleep(1);
 		*nano_clock += 1000000;
 		if(*nano_clock >= 1000000000) {
 			*nano_clock -= 1000000000;
