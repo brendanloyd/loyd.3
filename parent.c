@@ -17,50 +17,29 @@ void timeoutSigHandler(int sig) {
 }
 
 int main(int argc, char **argv) {
+	//Variables for handling Getopt options and loop to run child processes
 	int option, totalChildProcesses = 4, clockIncrement;
 	int childrenRunningAtOneTime = 2;
-	signal(SIGTERM, terminateSigHandler);
-	signal(SIGALRM, timeoutSigHandler);
-	alarm(30);
         int childProcessCounter;
         char *childNumber; //char arrays to send to child
         char *clock_Increment; //char arrays to send to child
 
-   struct sigaction sigIntHandler;
+	//Variables for signal handling
+        signal(SIGTERM, terminateSigHandler);
+        signal(SIGALRM, timeoutSigHandler);
+        alarm(30);
+	struct sigaction sigIntHandler;
+	sigIntHandler.sa_handler = terminateSigHandler;
+	sigemptyset(&sigIntHandler.sa_mask);
+	sigIntHandler.sa_flags = 0;
+	sigaction(SIGINT, &sigIntHandler, NULL);
 
-   sigIntHandler.sa_handler = terminateSigHandler;
-   sigemptyset(&sigIntHandler.sa_mask);
-   sigIntHandler.sa_flags = 0;
-
-   sigaction(SIGINT, &sigIntHandler, NULL);
-
-	struct  my_msgbuf buf;
+	//Variables for message queue
+	struct my_msgbuf buf;
 	key_t key;
 	int msqid;
-	if((key = SHMKEY) == -1) {
-		perror("Key initialization failed.");
-		exit(1);
-	}
-	if(msqid = msgget(key, PERMS | IPC_CREAT) == -1) {
-		perror("msgget");
-		exit(1);
-	}
-	char message[20] = "This is for jaggy";
-	printf("message is %s\n", message);
-	strncpy(message, buf.mtext, 20);
-	printf("message to send is: %s\n", buf.mtext); 
-	int len = strlen(buf.mtext);
-	if (buf.mtext[len-1] == '\n') buf.mtext[len-1] = '\0';
-	if (msgsnd(msqid, &buf, len+1, 0) == -1) {
-		perror("msgsnd");
-		exit(1);
-	}
-	if(msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0) == -1) {
-		perror("msgrcv");
-		exit(1);
-	}
-	printf("recvd: %s\n", buf.mtext);
-	exit(1);
+
+	//Getopt options for program
 	while ((option = getopt(argc, argv, "hn:s:m:")) != -1) {
                 switch (option) {
                         case 'h' :
@@ -100,6 +79,28 @@ int main(int argc, char **argv) {
 
         }
 
+	//Setup key for message queue
+        if((key = SHMKEY) == -1) {
+                perror("Key initialization failed.");
+                exit(1);
+        }
+
+	//Setup id for message queue
+        if(msqid = msgget(key, PERMS | IPC_CREAT) == -1) {
+                perror("msgget");
+                exit(1);
+        }
+	char message[200] = "Ready to enter critical section!";
+        //strcpy(buf.mtext, "This is for jaggy");
+	sprintf(buf.mtext, "%s", message);
+	int len = strlen(buf.mtext);
+
+        if (buf.mtext[len-1] == '\n') buf.mtext[len-1] = '\0';
+        if (msgsnd(msqid, &buf, len+1, 0) == -1) {
+                perror("msgsnd : parent.c ");
+                exit(1);
+        }
+
 	int segment_id = shmget ( SHMKEY, BUFF_SZ, 0777 | IPC_CREAT);
 	if (segment_id == -1) {
 		perror("Error: parent.c : shared memory failed.");
@@ -116,6 +117,8 @@ int main(int argc, char **argv) {
 	  /* Set shared memory segment to 0  */
 	*shared_memory = 0;
 	mem_ptr = shared_memory;
+
+	//Create nano clock in shared memory and set it to 0
 	int *nano_clock = shared_memory + 1;
 	*nano_clock = 0;
 	
@@ -123,20 +126,7 @@ int main(int argc, char **argv) {
 	childNumber = malloc(sizeof(totalChildProcesses));
 
         sprintf(clock_Increment, "%d", clockIncrement);
-//	for (childProcessCounter = 0; childProcessCounter < (totalChildProcesses - childrenRunningAtOneTime); childProcessCounter++) {
-//		//wait();
-//		if(childrenRunningAtOneTime != 0)
-//		childrenRunningAtOneTime--;
-//		pid_t childPid = fork(); // This is where the child process splits from the parent
-//		sprintf(childNumber, "%d",(childProcessCounter + 1));
-//		if (childPid == 0) {
-//            	char* args[] = {"./child", childNumber, clock_Increment, 0};
-//                	//execvp(args[0], args);
-//                	execlp(args[0],args[0],args[1],args[2], args[3]);
-//                	fprintf(stderr,"Exec failed, terminating\n");
-//                	exit(1);
-//        	} 
-//	}
+
 		pid_t wpid;
 		int status = 0;		
 	        for (childProcessCounter = 0; childProcessCounter < totalChildProcesses; childProcessCounter++) {
@@ -158,6 +148,10 @@ int main(int argc, char **argv) {
 
 	while ((wpid = wait(&status)) > 0);	
         printf("Clock value in seconds is: %d : NanoSeconds is : %d\nParent is now ending\n",*shared_memory, *nano_clock);
+	if (msgctl(msqid, IPC_RMID, NULL) == -1) {
+      		perror("msgctl");
+      		exit(1);
+   	}
 	shmdt(shared_memory);    // Detach from the shared memory segment
 	shmctl( segment_id, IPC_RMID, NULL ); // Free shared memory segment shm_id
 	return EXIT_SUCCESS; 

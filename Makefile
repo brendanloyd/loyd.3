@@ -15,7 +15,7 @@ $(TARGET2):	$(OBJS2)
 	$(CC) -o $(TARGET2) $(OBJS2)
 
 child.o:	child.c
-	$(CC) $(CFLAGS) -c child.c 
+	$(CC) $(CFLAGS) -c child.c
 
 parent.o:	parent.c
 	$(CC) $(CFLAGS) -c parent.c
