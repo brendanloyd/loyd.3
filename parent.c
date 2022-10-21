@@ -18,7 +18,7 @@ void timeoutSigHandler(int sig) {
 
 int main(int argc, char **argv) {
 	//Variables for handling Getopt options and loop to run child processes
-	int option, totalChildProcesses = 4, clockIncrement;
+	int option, totalChildProcesses = 4, clockIncrement = 1;
 	int childrenRunningAtOneTime = 2;
         int childProcessCounter;
         char *childNumber; //char arrays to send to child
@@ -99,11 +99,12 @@ int main(int argc, char **argv) {
 	//int len = strlen(buf.mtext);
 
         //if (buf.mtext[len-1] == '\n') buf.mtext[len-1] = '\0';
-        printf("MessageQid is : %d\n", msqid);
-	if (msgsnd(msqid, &buf, sizeof(buf), 0) == -1) {
+        //printf("MessageQid is : %d\n", msqid);
+        msgsnd(msqid, &buf, sizeof(buf), 0);
+	/*if (msgsnd(msqid, &buf, sizeof(buf), 0) == -1) {
                 perror("msgsnd : parent.c ");
                 exit(1);
-        }
+        }*/
  
 	int segment_id = shmget ( SHMKEY, BUFF_SZ, 0777 | IPC_CREAT);
 	if (segment_id == -1) {
@@ -128,8 +129,8 @@ int main(int argc, char **argv) {
 	
 	clock_Increment = malloc(sizeof(clockIncrement));
 	childNumber = malloc(sizeof(totalChildProcesses));
-	char *msq_id = malloc(sizeof(msqid));
-	sprintf(msq_id, "%d", msqid);
+	//char *msq_id = malloc(sizeof(msqid));
+	//sprintf(msq_id, "%d", msqid);
 
         sprintf(clock_Increment, "%d", clockIncrement);
 
@@ -137,6 +138,7 @@ int main(int argc, char **argv) {
 		int status = 0;		
 	        for (childProcessCounter = 0; childProcessCounter < totalChildProcesses; childProcessCounter++) {
                 	//wait();
+                	//printf("childProccessCounter: %d\ntotalChildProcesses: %d",childProcessCounter,totalChildProcesses);
                 	if(childProcessCounter == childrenRunningAtOneTime) {
                 		//wait(NULL);
 				while ((wpid = wait(&status)) > 0);
@@ -145,17 +147,17 @@ int main(int argc, char **argv) {
 			pid_t childPid = fork(); // This is where the child process splits from the parent
                 	sprintf(childNumber, "%d",(childProcessCounter + 1));
                 	if (childPid == 0) {
-                        	char* args[] = {"./child", childNumber, clock_Increment, msq_id, 0};
-                        	//char* args[] = {"./child", childNumber, clock_Increment, 0};
+                        	//char* args[] = {"./child", childNumber, clock_Increment, msq_id, 0};
+                        	char* args[] = {"./child", childNumber, clock_Increment, 0};
 				//execvp(args[0], args);
-                        	//execlp(args[0],args[0],args[1],args[2], args[3]);
-				execlp(args[0],args[0],args[1],args[2], args[3], args[4]);
+                        	execlp(args[0],args[0],args[1],args[2], args[3]);
+				//execlp(args[0],args[0],args[1],args[2], args[3], args[4]);
                         	fprintf(stderr,"Exec failed, terminating\n");
                         	exit(1);
                 	}
                 }
-	wait(NULL);
-	//while ((wpid = wait(&status)) > 0);	
+	//wait(NULL);
+	while ((wpid = wait(&status)) > 0);	
         printf("Clock value in seconds is: %d : NanoSeconds is : %d\nParent is now ending\n",*shared_memory, *nano_clock);
 	if (msgctl(msqid, IPC_RMID, NULL) == -1) {
       		perror("msgctl");

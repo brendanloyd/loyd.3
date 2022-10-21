@@ -29,21 +29,23 @@ int main(int argc, char** argv) {
 	
 	int forLoopIncrement;
 	for(forLoopIncrement = 0; forLoopIncrement < totalIncrements; forLoopIncrement++) {
-        	printf("worker_pid %d waiting entry. MessageQ id is: %d\n", getpid(),msqid);
-		if(msgrcv(msqid, &buf, sizeof(buf), 1, 0) == -1) {
+        	//printf("worker_pid %d waiting entry. MessageQ id is: %d\n", getpid(),msqid);
+		msgrcv(msqid, &buf, sizeof(buf), 1, 0);
+		/*if(msgrcv(msqid, &buf, sizeof(buf), 1, 0) == -1) {
                 	perror("msgrcv");
                 	exit(1);
-        	}
+        	}*/
 		printf("worker_pid %d : Got in criticial section: Time: %d\n", getpid(), *shared_memory);
-		//sleep(1);
-		*nano_clock += 1000000;
+		sleep(1);
+		/**nano_clock += 1000000;
 		if(*nano_clock >= 1000000000) {
 			*nano_clock -= 1000000000;
 			*shared_memory += 1;
-		}
+		}*/
 		 
 		printf("worker_pid %d : Iteration %d  : Incrementing by %d : second %d nanosecond %d\n", getpid(), atoi(argv[1]), 1000000, *shared_memory, *nano_clock);
 		printf("worker_pid %d : Leaving critical section: Time: %d\n", getpid(), *shared_memory);
+		sleep(1);
 		//buf.mtype = 1;
 		strcpy(buf.mtext, "exiting critical section.");
 		//sprintf(buf.mtext, "%s", message);
