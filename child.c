@@ -16,19 +16,21 @@ int main(int argc, char** argv) {
 	int msqid = 0;
 	//int msqid = (atoi(argv[3]));
 	const int key_id = 1234;
-
-        if(key = ftok("./parent.c", key_id) == -1) {
+	
+        /*if(key = ftok("./parent.c", key_id) == -1) {
                 perror("Key initialization failed.");
                 exit(1);
-        }
+        }*/
+	key = ftok("./parent.c", key_id);
         msqid = msgget(key, 0644|IPC_CREAT);
+	//msqid = msgget(key, 0644|IPC_CREAT);
 
 	int *nano_clock = shared_memory + 1;
 	
 	int forLoopIncrement;
 	for(forLoopIncrement = 0; forLoopIncrement < totalIncrements; forLoopIncrement++) {
         	printf("worker_pid %d waiting entry. MessageQ id is: %d\n", getpid(),msqid);
-		if(msgrcv((msqid-1), &buf, sizeof(buf), 1, 0) == -1) {
+		if(msgrcv(msqid, &buf, sizeof(buf), 1, 0) == -1) {
                 	perror("msgrcv");
                 	exit(1);
         	}

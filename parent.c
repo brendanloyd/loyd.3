@@ -81,13 +81,13 @@ int main(int argc, char **argv) {
         }
 
 	//Setup key for message queue
-        if(key = ftok("./parent.c" ,key_id) == -1) {
+        /*if(key = ftok("./parent.c" ,key_id) == -1) {
                 perror("Key initialization failed.");
                 exit(1);
-        }
-
+        }*/
+	key = ftok("./parent.c",key_id);
 	//Setup id for message queue
-        msqid = msgget(key,  0644|IPC_CREAT);
+        msqid = msgget(key, 0644|IPC_CREAT);
         
 	
 	//send message
@@ -128,8 +128,8 @@ int main(int argc, char **argv) {
 	
 	clock_Increment = malloc(sizeof(clockIncrement));
 	childNumber = malloc(sizeof(totalChildProcesses));
-	//char *msq_id = malloc(sizeof(msqid));
-	//sprintf(msq_id, "%d", msqid);
+	char *msq_id = malloc(sizeof(msqid));
+	sprintf(msq_id, "%d", msqid);
 
         sprintf(clock_Increment, "%d", clockIncrement);
 
@@ -145,11 +145,11 @@ int main(int argc, char **argv) {
 			pid_t childPid = fork(); // This is where the child process splits from the parent
                 	sprintf(childNumber, "%d",(childProcessCounter + 1));
                 	if (childPid == 0) {
-                        	//char* args[] = {"./child", childNumber, clock_Increment, msq_id, 0};
-                        	char* args[] = {"./child", childNumber, clock_Increment, 0};
+                        	char* args[] = {"./child", childNumber, clock_Increment, msq_id, 0};
+                        	//char* args[] = {"./child", childNumber, clock_Increment, 0};
 				//execvp(args[0], args);
-                        	execlp(args[0],args[0],args[1],args[2], args[3]);
-				//execlp(args[0],args[0],args[1],args[2], args[3], args[4]);
+                        	//execlp(args[0],args[0],args[1],args[2], args[3]);
+				execlp(args[0],args[0],args[1],args[2], args[3], args[4]);
                         	fprintf(stderr,"Exec failed, terminating\n");
                         	exit(1);
                 	}
