@@ -20,9 +20,9 @@
 
 
 
-struct my_msgbuf {
-	//long mtype;
+typedef struct my_msgbuf {
+	long mtype;
 	char mtext[200];
-};
+}message;
 
 #endif
